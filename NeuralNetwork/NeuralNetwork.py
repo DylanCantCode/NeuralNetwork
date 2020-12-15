@@ -21,6 +21,7 @@ class Layer_Dense:
         self.weights = 0.1 * np.random.randn(n_inputs, n_neurons)
         self.biases = np.zeros((1, n_neurons))
     def forward(self, inputs):
+        self.inputs = inputs
         self.outputs = np.dot(inputs, self.weights) + self.biases
 
 class Layer_Dense_With_Activation(Layer_Dense):
@@ -35,6 +36,10 @@ class Layer_Dense_With_Activation(Layer_Dense):
         self.errors = (expecteds - self.outputs) * self.activation_func.derivative(self.outputs)
     def back_with_errors(self, errors, weights):
         self.errors = np.dot(errors, weights.T) * self.activation_func.derivative(self.outputs)
+    def update_weights(self, lrate):
+        update = np.dot(self.inputs.T, self.errors)
+        update *= lrate / len(self.errors)
+        self.weights += update
 
 class Network:
     def __init__(self, *layers):
@@ -56,6 +61,10 @@ class Network:
                 layer.back_with_errors(errors, weights)
                 errors = layer.errors
                 weights = layer.weights
+    def update(self, lrate = 0.1):
+        for layer in self.layers:
+            layer.update_weights(lrate)
+
 
 
 
@@ -65,8 +74,12 @@ layer1 = Layer_Dense_With_Activation(4, 5, func1)
 layer2 = Layer_Dense_With_Activation(5, 2, func2)
 
 network = Network(layer1, layer2)
-network.forward(X)
-network.back(Y)
-print(network.outputs)
-print(network.layers[1].errors)
-print(network.layers[0].errors)
+for i in range(0,10):
+    network.forward(X)
+    network.back(Y)
+    print("outputs:", network.outputs)
+    print("layer0 errors:", network.layers[0].errors)
+    print("layer1 errors:", network.layers[1].errors)
+    print("layer0 weights:", network.layers[0].weights)
+    print("layer1 weights:", network.layers[1].weights)
+    network.update()
