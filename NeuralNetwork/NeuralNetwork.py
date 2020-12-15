@@ -40,6 +40,9 @@ class Layer_Dense_With_Activation(Layer_Dense):
         update = np.dot(self.inputs.T, self.errors)
         update *= lrate / len(self.errors)
         self.weights += update
+    def update_biases(self, lrate):
+        update = [sum(xs) / len(xs) * lrate for xs in self.errors.T]
+        self.biases += update
 
 class Network:
     def __init__(self, *layers):
@@ -64,6 +67,7 @@ class Network:
     def update(self, lrate = 0.1):
         for layer in self.layers:
             layer.update_weights(lrate)
+            layer.update_biases(lrate)
 
 
 
@@ -82,4 +86,6 @@ for i in range(0,10):
     print("layer1 errors:", network.layers[1].errors)
     print("layer0 weights:", network.layers[0].weights)
     print("layer1 weights:", network.layers[1].weights)
+    print("layer0 biases:", network.layers[0].biases)
+    print("layer1 biases:", network.layers[1].biases)
     network.update()
