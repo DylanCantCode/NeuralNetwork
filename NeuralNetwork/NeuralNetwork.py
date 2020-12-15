@@ -36,8 +36,6 @@ class Layer_Dense_With_Activation(Layer_Dense):
     def back_with_errors(self, errors, weights):
         self.errors = np.dot(errors, weights.T) * self.activation_func.derivative(self.outputs)
 
-
-
 class Network:
     def __init__(self, *layers):
         self.layers = layers
@@ -46,6 +44,19 @@ class Network:
         for layer in self.layers:
             layer.forward(self.outputs)
             self.outputs = layer.outputs
+    def back(self, expecteds):
+        last_layer = True
+        for layer in reversed(self.layers):
+            if last_layer:
+                layer.back_with_expecteds(expecteds)
+                errors = layer.errors
+                weights = layer.weights
+                last_layer = False
+            else:
+                layer.back_with_errors(errors, weights)
+                errors = layer.errors
+                weights = layer.weights
+
 
 
 func1 = Activation_ReLU()
@@ -55,8 +66,7 @@ layer2 = Layer_Dense_With_Activation(5, 2, func2)
 
 network = Network(layer1, layer2)
 network.forward(X)
+network.back(Y)
 print(network.outputs)
-network.layers[1].back_with_expecteds(Y)
 print(network.layers[1].errors)
-network.layers[0].back_with_errors(network.layers[1].errors, network.layers[1].weights)
 print(network.layers[0].errors)
