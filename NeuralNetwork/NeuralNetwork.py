@@ -3,28 +3,35 @@ import csv
 
 X = []
 Y = []
-
+#Variables
 with open("wheat-seeds.csv") as csv_file:
     csv_reader = csv.reader(csv_file, delimiter = ',')
     Z = []
     for row in csv_reader:
         Z.append(row)
 
+def normalise_row(row):
+    ys = [0.0, 0.0, 0.0]
+    ys[int(row[-1]) - 1] = 1.0
+    xs = row[0:-1]
+    xs = [float(xs[i]) / col_max[i] for i in range(0,len(xs))]
+    return xs + ys
 np.random.shuffle(Z)
+Z = np.array(Z)
+col_max = [max(map(float,col_i)) for col_i in Z.T]
 for row in Z:
-    X.append(list(map(float,row[0:-1])))
-    y = [0.0, 0.0, 0.0]
-    y[int(row[-1]) - 1] = 1.0
-    Y.append(y)
+    z = normalise_row(row)
+    X.append(z[0:-3])
+    Y.append(z[-3:])
 X = np.array(X)
 Y = np.array(Y)
 
-X_train = X[0:50]
-Y_train = Y[0:50]
-X_test = X[50:]
-Y_test = Y[50:]
+X_train = X[0:150]
+Y_train = Y[0:150]
+X_test = X[150:]
+Y_test = Y[150:]
 
-
+#Stuff
 class Activation_ReLU:
     def forward(self, inputs):
         self.outputs = np.maximum(0, inputs)
@@ -110,11 +117,12 @@ classification_func = lambda x: [[1.0, 0.0, 0.0],[0.0,1.0,0.0],[0.0,0.0,1.0]][np
 
 network = Network(layer1, layer2)
 
-network.train(X_train, Y_train, 1, batch_size = 10)
-results = network.predict(X_train, classification_func)
+network.train(X_train, Y_train, 100, batch_size = 10)
+results = network.predict(X_test, classification_func)
+print(network.outputs)
 success_total = 0
-for result, answer in zip(results, Y_train):
+for result, answer in zip(results, Y_test):
     if (answer == result).all():
         success_total += 1
 print("successes:{}".format(success_total))
-print("total:{}".format(len(X_train)))
+print("total:{}".format(len(X_test)))
