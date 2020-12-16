@@ -10,15 +10,14 @@ with open("wheat-seeds.csv") as csv_file:
     for row in csv_reader:
         Z.append(row)
 
-print(Z)
 np.random.shuffle(Z)
 for row in Z:
-    X.append(row[0:-1])
-    Y.append([row[-1]])
+    X.append(list(map(float,row[0:-1])))
+    y = [0.0, 0.0, 0.0]
+    y[int(row[-1]) - 1] = 1.0
+    Y.append(y)
 X = np.array(X)
 Y = np.array(Y)
-print(X)
-print(Y)
 
 X_train = X[0:50]
 Y_train = Y[0:50]
@@ -86,32 +85,36 @@ class Network:
             layer.update_weights(lrate)
             layer.update_biases(lrate)
     def train(self, X, Y, n_epoch, lrate_ = 0.1, batch_size = -1):
-        if batch_size = -1:
+        if batch_size == -1:
             batch_size = len(X)
         for i in range(0, n_epoch):
             data_index = 0
-            while data_index <= len(X):
+            while data_index < len(X):
                 data_last = min(data_index + batch_size, len(X))
                 self.forward(X[data_index:data_last])
                 self.back(Y[data_index:data_last])
                 self.update(lrate = lrate_)
                 data_index = data_last
 
-    def predict(self, X):
+    def predict(self, X, classification_func):
         network.forward(X)
-        return network.outputs
+        return map(classification_func, network.outputs)
 
 
 
 func1 = Activation_ReLU()
 func2 = Activation_ReLU()
-layer1 = Layer_Dense_With_Activation(4, 5, func1)
-layer2 = Layer_Dense_With_Activation(5, 2, func2)
+layer1 = Layer_Dense_With_Activation(7, 8, func1)
+layer2 = Layer_Dense_With_Activation(8, 3, func2)
+classification_func = lambda x: [[1.0, 0.0, 0.0],[0.0,1.0,0.0],[0.0,0.0,1.0]][np.argmax(x)]
 
 network = Network(layer1, layer2)
-"""
-network.forward(X)
-print(network.outputs)
-network.train(X, Y, 20)
-print(network.outputs)
-"""
+
+network.train(X_train, Y_train, 1, batch_size = 10)
+results = network.predict(X_train, classification_func)
+success_total = 0
+for result, answer in zip(results, Y_train):
+    if (answer == result).all():
+        success_total += 1
+print("successes:{}".format(success_total))
+print("total:{}".format(len(X_train)))
