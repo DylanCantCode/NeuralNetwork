@@ -1,13 +1,30 @@
 import numpy as np
-np.random.seed(0)
+import csv
 
-X = np.array([[1, 2, 3, 2.5],
-              [2.0, 5.0,-1.0, 2.0],
-              [-1.5, 2.7, 3.3, -0.8]])
+X = []
+Y = []
 
-Y = np.array([[1,0],
-              [0,1],
-              [1,0]])
+with open("wheat-seeds.csv") as csv_file:
+    csv_reader = csv.reader(csv_file, delimiter = ',')
+    Z = []
+    for row in csv_reader:
+        Z.append(row)
+
+print(Z)
+np.random.shuffle(Z)
+for row in Z:
+    X.append(row[0:-1])
+    Y.append([row[-1]])
+X = np.array(X)
+Y = np.array(Y)
+print(X)
+print(Y)
+
+X_train = X[0:50]
+Y_train = Y[0:50]
+X_test = X[50:]
+Y_test = Y[50:]
+
 
 class Activation_ReLU:
     def forward(self, inputs):
@@ -19,7 +36,7 @@ class Activation_ReLU:
 class Layer_Dense:
     def __init__(self, n_inputs, n_neurons):
         self.weights = 0.1 * np.random.randn(n_inputs, n_neurons)
-        self.biases = np.zeros((1, n_neurons))
+        self.biases = np.ones((1, n_neurons))
     def forward(self, inputs):
         self.inputs = inputs
         self.outputs = np.dot(inputs, self.weights) + self.biases
@@ -68,7 +85,21 @@ class Network:
         for layer in self.layers:
             layer.update_weights(lrate)
             layer.update_biases(lrate)
+    def train(self, X, Y, n_epoch, lrate_ = 0.1, batch_size = -1):
+        if batch_size = -1:
+            batch_size = len(X)
+        for i in range(0, n_epoch):
+            data_index = 0
+            while data_index <= len(X):
+                data_last = min(data_index + batch_size, len(X))
+                self.forward(X[data_index:data_last])
+                self.back(Y[data_index:data_last])
+                self.update(lrate = lrate_)
+                data_index = data_last
 
+    def predict(self, X):
+        network.forward(X)
+        return network.outputs
 
 
 
@@ -78,14 +109,9 @@ layer1 = Layer_Dense_With_Activation(4, 5, func1)
 layer2 = Layer_Dense_With_Activation(5, 2, func2)
 
 network = Network(layer1, layer2)
-for i in range(0,10):
-    network.forward(X)
-    network.back(Y)
-    print("outputs:", network.outputs)
-    print("layer0 errors:", network.layers[0].errors)
-    print("layer1 errors:", network.layers[1].errors)
-    print("layer0 weights:", network.layers[0].weights)
-    print("layer1 weights:", network.layers[1].weights)
-    print("layer0 biases:", network.layers[0].biases)
-    print("layer1 biases:", network.layers[1].biases)
-    network.update()
+"""
+network.forward(X)
+print(network.outputs)
+network.train(X, Y, 20)
+print(network.outputs)
+"""
