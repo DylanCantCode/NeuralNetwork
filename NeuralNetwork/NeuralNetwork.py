@@ -1,5 +1,6 @@
 import numpy as np
 import csv
+import json
 
 X = []
 Y = []
@@ -38,14 +39,25 @@ class Activation_ReLU:
     def derivative(self, outputs):
         dev = lambda x : 1 if x > 0 else 0
         return np.array([[dev(x) for x in xs] for xs in outputs])
+    def getjson(self):
+        return "ReLU"
 
 class Layer_Dense:
     def __init__(self, n_inputs, n_neurons):
         self.weights = 0.1 * np.random.randn(n_inputs, n_neurons)
         self.biases = np.ones((1, n_neurons))
+        self.n_inputs = n_inputs
+        self.n_neurons = n_neurons
     def forward(self, inputs):
         self.inputs = inputs
         self.outputs = np.dot(inputs, self.weights) + self.biases
+    def getjson(self):
+        data = {"weights" : self.weights.tolist(),
+                "biases" : self.biases.tolist(),
+                "n_inputs" : self.n_inputs,
+                "n_neurons" : self.n_neurons
+        }
+        return data
 
 class Layer_Dense_With_Activation(Layer_Dense):
     def __init__(self, n_inputs, n_neurons, activation_func):
@@ -66,6 +78,10 @@ class Layer_Dense_With_Activation(Layer_Dense):
     def update_biases(self, lrate):
         update = [sum(xs) / len(xs) * lrate for xs in self.errors.T]
         self.biases += update
+    def getjson(self):
+        data = super().getjson()
+        data["activation_func"] = self.activation_func.getjson()
+        return data
 
 class Network:
     def __init__(self, *layers):
@@ -104,8 +120,25 @@ class Network:
                 data_index = data_last
 
     def predict(self, X, classification_func):
-        network.forward(X)
+        self.forward(X)
         return map(classification_func, network.outputs)
+    def save(self, file_name):
+        data = {"layers" : [],
+                "layer_count" : len(self.layers)}
+        for layer in self.layers:
+            data["layers"].append(layer.getjson())
+        with open("./savednets/{}.json".format(file_name), "w") as write_file:
+            json.dump(data, write_file)
+    def load(self, file_name):
+        with open("./savednets/{}.json".format(file_name), "r") as read_file:
+            data = json.loads(read_file.read())
+        self.layers = []
+        for layer in data["layers"]:
+            func = Activation_ReLU()
+            new_layer = Layer_Dense_With_Activation(layer["n_inputs"], layer["n_neurons"], func)
+            new_layer.weights = np.array(layer["weights"])
+            new_layer.biases = np.array(layer["biases"])
+            self.layers.append(new_layer)
 
 
 
@@ -115,9 +148,9 @@ layer1 = Layer_Dense_With_Activation(7, 8, func1)
 layer2 = Layer_Dense_With_Activation(8, 3, func2)
 classification_func = lambda x: [[1.0, 0.0, 0.0],[0.0,1.0,0.0],[0.0,0.0,1.0]][np.argmax(x)]
 
-network = Network(layer1, layer2)
-
-network.train(X_train, Y_train, 100, batch_size = 10)
+network = Network()
+network.load("test")
+network.train(X_train, Y_train, 1000, batch_size = 10)
 results = network.predict(X_test, classification_func)
 print(network.outputs)
 success_total = 0
@@ -126,3 +159,4 @@ for result, answer in zip(results, Y_test):
         success_total += 1
 print("successes:{}".format(success_total))
 print("total:{}".format(len(X_test)))
+network.save("test")
